@@ -1,4 +1,7 @@
-export function isUrlSafe(urlString: string): { safe: boolean; reason?: string } {
+export function isUrlSafe(urlString: string): {
+  safe: boolean;
+  reason?: string;
+} {
   try {
     const url = new URL(urlString);
 
@@ -25,11 +28,17 @@ export function isUrlSafe(urlString: string): { safe: boolean; reason?: string }
 
     for (const pattern of blockedPatterns) {
       if (pattern.test(hostname)) {
-        return { safe: false, reason: "Access to private networks and cloud metadata endpoints is blocked" };
+        return {
+          safe: false,
+          reason:
+            "Access to private networks and cloud metadata endpoints is blocked",
+        };
       }
     }
 
-    const blockedPorts = [22, 23, 25, 110, 143, 445, 1433, 3306, 3389, 5432, 6379, 27017];
+    const blockedPorts = [
+      22, 23, 25, 110, 143, 445, 1433, 3306, 3389, 5432, 6379, 27017,
+    ];
     if (url.port && blockedPorts.includes(parseInt(url.port))) {
       return { safe: false, reason: "Access to sensitive ports is blocked" };
     }
@@ -54,7 +63,11 @@ export function isUrlSafe(urlString: string): { safe: boolean; reason?: string }
 
     const pathSegments = url.pathname.split("/");
     for (const segment of pathSegments) {
-      if (segment.includes("..") || segment.includes("%2e%2e") || segment.includes("%252e")) {
+      if (
+        segment.includes("..") ||
+        segment.includes("%2e%2e") ||
+        segment.includes("%252e")
+      ) {
         return { safe: false, reason: "Path traversal detected" };
       }
     }
@@ -77,7 +90,7 @@ export function isWithinRateLimit(
   rateLimitMap: Map<string, { count: number; resetAt: number }>,
   ip: string,
   maxRequests: number,
-  enabled: boolean
+  enabled: boolean,
 ): boolean {
   if (!enabled) return true;
 
@@ -118,7 +131,10 @@ export function validateScreenshotParams(params: {
     return { valid: false, reason: "Quality must be between 1 and 100" };
   }
 
-  if (params.format && !["webp", "png", "jpeg", "jpg"].includes(params.format)) {
+  if (
+    params.format &&
+    !["webp", "png", "jpeg", "jpg"].includes(params.format)
+  ) {
     return { valid: false, reason: "Format must be webp, png, or jpeg" };
   }
 

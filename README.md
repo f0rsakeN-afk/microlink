@@ -1,19 +1,19 @@
-# Screenshot API v2.0
+# Macrolink API
 
 Self-hosted screenshot service with advanced features. No third-party APIs, unlimited requests.
 
 ## Features
 
-- 🎨 **Multiple formats** - WebP, PNG, JPEG
-- 📄 **Full page screenshots** - Capture entire scrollable page
-- ⏱️ **Wait/Delay support** - Wait for JavaScript to load
-- 📊 **Metadata extraction** - Get title, description, og:image
-- 🔄 **Batch processing** - Process up to 10 URLs at once
-- 💾 **Cache control** - Force refresh or cache-only mode
-- ☁️ **S3/R2 upload** - Optional cloud storage
-- 🧹 **Auto cleanup** - Delete old files automatically
-- 📈 **Usage stats** - Track requests and cache hits
-- 🏎️ **Smart cropping** - Auto or manual crop support
+- **Multiple formats** - WebP, PNG, JPEG
+- **Full page screenshots** - Capture entire scrollable page
+- **Wait/Delay support** - Wait for JavaScript to load
+- **Metadata extraction** - Get title, description, og:image
+- **Batch processing** - Process up to 10 URLs at once
+- **Cache control** - Force refresh or cache-only mode
+- **S3/R2 upload** - Optional cloud storage
+- **Auto cleanup** - Delete old files automatically
+- **Usage stats** - Track requests and cache hits
+- **Smart cropping** - Auto or manual crop support
 
 ## Quick Start
 
@@ -32,22 +32,22 @@ Visit: http://localhost:3000
 
 **Parameters:**
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `url` | string | required | Website URL |
-| `width` | number | 1200 | Width (320-3840) |
-| `height` | number | 630 | Height (240-2160) |
-| `format` | string | webp | Image format: webp, png, jpeg |
-| `quality` | number | 80 | Quality 1-100 |
-| `fullPage` | boolean | false | Capture full scrollable page |
-| `dark` | boolean | false | Dark mode |
-| `delay` | number | 0 | Delay in ms (max 10000) |
-| `waitFor` | string | - | CSS selector to wait for |
-| `userAgent` | string | - | Custom user agent |
-| `cache` | string | default | Cache control: default, refresh, only |
-| `uploadToS3` | boolean | false | Upload to S3/R2 |
-| `metadata` | boolean | true | Extract page metadata |
-| `output` | string | image | Response: image or json |
+| Parameter    | Type    | Default  | Description                           |
+| ------------ | ------- | -------- | ------------------------------------- |
+| `url`        | string  | required | Website URL                           |
+| `width`      | number  | 1200     | Width (320-3840)                      |
+| `height`     | number  | 630      | Height (240-2160)                     |
+| `format`     | string  | webp     | Image format: webp, png, jpeg         |
+| `quality`    | number  | 80       | Quality 1-100                         |
+| `fullPage`   | boolean | false    | Capture full scrollable page          |
+| `dark`       | boolean | false    | Dark mode                             |
+| `delay`      | number  | 0        | Delay in ms (max 10000)               |
+| `waitFor`    | string  | -        | CSS selector to wait for              |
+| `userAgent`  | string  | -        | Custom user agent                     |
+| `cache`      | string  | default  | Cache control: default, refresh, only |
+| `uploadToS3` | boolean | false    | Upload to S3/R2                       |
+| `metadata`   | boolean | true     | Extract page metadata                 |
+| `output`     | string  | image    | Response: image or json               |
 
 **Examples:**
 
@@ -334,45 +334,38 @@ curl "http://localhost:3000/api/screenshot?url=https://example.com&uploadToS3=tr
 The API includes comprehensive security measures:
 
 ### URL Validation
-- ✅ Only HTTP/HTTPS protocols allowed
-- ✅ Blocks localhost and private IP ranges (127.0.0.1, 192.168.x.x, 10.x.x.x, etc.)
-- ✅ Blocks cloud metadata endpoints (169.254.169.254, metadata.google.internal)
-- ✅ Blocks sensitive ports (SSH, MySQL, PostgreSQL, Redis, etc.)
-- ✅ Blocks credentials in URLs
-- ✅ Prevents path traversal attacks
-- ✅ Blocks suspicious schemes (javascript:, data:, file:, etc.)
+
+- Only HTTP/HTTPS protocols allowed
+- Blocks localhost and private IP ranges (127.0.0.1, 192.168.x.x, 10.x.x.x, etc.)
+- Blocks cloud metadata endpoints (169.254.169.254, metadata.google.internal)
+- Blocks sensitive ports (SSH, MySQL, PostgreSQL, Redis, etc.)
+- Blocks credentials in URLs
+- Prevents path traversal attacks
+- Blocks suspicious schemes (javascript:, data:, file:, etc.)
 
 ### Resource Protection
-- ✅ Rate limiting (100 requests/hour per IP by default)
-- ✅ Request timeout (255 seconds max)
-- ✅ Parameter validation (width, height, quality ranges)
-- ✅ File size limits
-- ✅ Request interception (blocks ads, analytics, unnecessary fonts)
+
+- Rate limiting (100 requests/hour per IP by default)
+- Request timeout (255 seconds max)
+- Parameter validation (width, height, quality ranges)
+- File size limits
+- Request interception (blocks ads, analytics, unnecessary fonts)
 
 ### Browser Security
-- ✅ Sandboxed Chromium
-- ✅ No file system access from pages
-- ✅ Isolated browser context per request
-- ✅ Automatic cleanup after each screenshot
+
+- Sandboxed Chromium
+- No file system access from pages
+- Isolated browser context per request
+- Automatic cleanup after each screenshot
 
 ### Example Blocked URLs
+
 ```
-❌ http://localhost:3000
-❌ http://127.0.0.1
-❌ http://192.168.1.1
-❌ http://169.254.169.254/metadata
-❌ http://site.com:3306
-❌ javascript:alert(1)
-❌ file:///etc/passwd
+http://localhost:3000
+http://127.0.0.1
+http://192.168.1.1
+http://169.254.169.254/metadata
+http://site.com:3306
+javascript:alert(1)
+file:///etc/passwd
 ```
-
-## Tech Stack
-
-- **Puppeteer** - Headless Chrome
-- **Sharp** - Image processing
-- **Bun** - JavaScript runtime
-- **AWS SDK** - S3/R2 uploads
-
-## License
-
-MIT

@@ -6,7 +6,7 @@ import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { createHash } from "crypto";
 import { existsSync, mkdirSync, statSync, unlinkSync, readdirSync } from "fs";
 import { join } from "path";
-import { isUrlSafe, sanitizeFilename, validateScreenshotParams } from "./security.ts";
+import { isUrlSafe, validateScreenshotParams } from "./security";
 
 const CONFIG = {
   PORT: parseInt(process.env.PORT || "3000"),
@@ -76,7 +76,7 @@ function getImageFilename(
   height: number,
   dark: boolean,
   format: string,
-  fullPage: boolean
+  fullPage: boolean,
 ): string {
   const hash = createHash("md5")
     .update(`${url}:${width}:${height}:${dark}:${format}:${fullPage}`)
@@ -144,15 +144,20 @@ interface BatchRequestBody {
 async function extractMetadata(page: Page): Promise<PageMetadata> {
   return await page.evaluate(() => {
     const getMetaContent = (name: string) => {
-      const meta = document.querySelector(`meta[name="${name}"], meta[property="${name}"]`);
+      const meta = document.querySelector(
+        `meta[name="${name}"], meta[property="${name}"]`,
+      );
       return meta?.getAttribute("content") || null;
     };
 
     return {
       title: document.title,
-      description: getMetaContent("description") || getMetaContent("og:description"),
+      description:
+        getMetaContent("description") || getMetaContent("og:description"),
       ogImage: getMetaContent("og:image"),
-      favicon: document.querySelector('link[rel="icon"]')?.getAttribute("href") || null,
+      favicon:
+        document.querySelector('link[rel="icon"]')?.getAttribute("href") ||
+        null,
       url: window.location.href,
     };
   });
@@ -166,7 +171,7 @@ async function captureScreenshot(
   fullPage: boolean,
   delay: number,
   waitFor?: string,
-  userAgent?: string
+  userAgent?: string,
 ): Promise<{ buffer: Buffer; metadata: PageMetadata }> {
   const browser = await getBrowser();
   const page = await browser.newPage();
@@ -179,7 +184,9 @@ async function captureScreenshot(
     }
 
     if (dark) {
-      await page.emulateMediaFeatures([{ name: "prefers-color-scheme", value: "dark" }]);
+      await page.emulateMediaFeatures([
+        { name: "prefers-color-scheme", value: "dark" },
+      ]);
     }
 
     await page.setExtraHTTPHeaders({
@@ -194,14 +201,20 @@ async function captureScreenshot(
 
       if (resourceType === "font" || resourceType === "media") {
         request.abort();
-      } else if (requestUrl.includes("ads") || requestUrl.includes("analytics")) {
+      } else if (
+        requestUrl.includes("ads") ||
+        requestUrl.includes("analytics")
+      ) {
         request.abort();
       } else {
         request.continue();
       }
     });
 
-    await page.goto(url, { waitUntil: "networkidle2", timeout: CONFIG.SCREENSHOT_TIMEOUT });
+    await page.goto(url, {
+      waitUntil: "networkidle2",
+      timeout: CONFIG.SCREENSHOT_TIMEOUT,
+    });
 
     if (waitFor) {
       try {
@@ -232,12 +245,17 @@ async function processImage(
   buffer: Buffer,
   format: string,
   quality: number,
-  crop?: { x: number; y: number; width: number; height: number }
+  crop?: { x: number; y: number; width: number; height: number },
 ): Promise<{ buffer: Buffer; size: number }> {
   let processor = sharp(buffer);
 
   if (crop) {
-    processor = processor.extract({ left: crop.x, top: crop.y, width: crop.width, height: crop.height });
+    processor = processor.extract({
+      left: crop.x,
+      top: crop.y,
+      width: crop.width,
+      height: crop.height,
+    });
   }
 
   let processed: Buffer;
@@ -252,7 +270,11 @@ async function processImage(
   return { buffer: processed, size: processed.length };
 }
 
-async function uploadToS3(buffer: Buffer, filename: string, contentType: string): Promise<string> {
+async function uploadToS3(
+  buffer: Buffer,
+  filename: string,
+  contentType: string,
+): Promise<string> {
   if (!s3Client || !CONFIG.S3_ENABLED) {
     throw new Error("S3 not configured");
   }
@@ -263,17 +285,21 @@ async function uploadToS3(buffer: Buffer, filename: string, contentType: string)
       Key: filename,
       Body: new Uint8Array(buffer),
       ContentType: contentType,
-    })
+    }),
   );
 
   stats.uploadedToS3++;
 
-  return CONFIG.S3_PUBLIC_URL ? `${CONFIG.S3_PUBLIC_URL}/${filename}` : filename;
+  return CONFIG.S3_PUBLIC_URL
+    ? `${CONFIG.S3_PUBLIC_URL}/${filename}`
+    : filename;
 }
 
 function getImageCount(): number {
   try {
-    return readdirSync(CONFIG.IMAGES_DIR).filter((f) => f.match(/\.(webp|png|jpe?g)$/)).length;
+    return readdirSync(CONFIG.IMAGES_DIR).filter((f) =>
+      f.match(/\.(webp|png|jpe?g)$/),
+    ).length;
   } catch {
     return 0;
   }
@@ -293,7 +319,10 @@ function getStorageSize(): number {
   }
 }
 
-async function cleanupOldFiles(): Promise<{ deleted: number; freedMB: number }> {
+async function cleanupOldFiles(): Promise<{
+  deleted: number;
+  freedMB: number;
+}> {
   try {
     const files = readdirSync(CONFIG.IMAGES_DIR)
       .map((f) => {
@@ -373,7 +402,7 @@ const server = Bun.serve({
             health: "GET /health",
           },
         },
-        { headers: CORS_HEADERS }
+        { headers: CORS_HEADERS },
       );
     }
 
@@ -389,13 +418,16 @@ const server = Bun.serve({
           browser: browser ? "connected" : "not started",
           s3Enabled: CONFIG.S3_ENABLED,
         },
-        { headers: CORS_HEADERS }
+        { headers: CORS_HEADERS },
       );
     }
 
     if (url.pathname === "/stats") {
       const storageSize = getStorageSize();
-      const cacheHitRate = stats.totalRequests > 0 ? ((stats.cacheHits / stats.totalRequests) * 100).toFixed(2) : "0";
+      const cacheHitRate =
+        stats.totalRequests > 0
+          ? ((stats.cacheHits / stats.totalRequests) * 100).toFixed(2)
+          : "0";
 
       return Response.json(
         {
@@ -408,7 +440,7 @@ const server = Bun.serve({
           storageMB: (storageSize / (1024 * 1024)).toFixed(2),
           totalImages: getImageCount(),
         },
-        { headers: CORS_HEADERS }
+        { headers: CORS_HEADERS },
       );
     }
 
@@ -419,8 +451,11 @@ const server = Bun.serve({
       try {
         if (!checkRateLimit(ip)) {
           return Response.json(
-            { error: "Rate limit exceeded", message: `Maximum ${CONFIG.MAX_REQUESTS_PER_IP} requests per hour` },
-            { status: 429, headers: CORS_HEADERS }
+            {
+              error: "Rate limit exceeded",
+              message: `Maximum ${CONFIG.MAX_REQUESTS_PER_IP} requests per hour`,
+            },
+            { status: 429, headers: CORS_HEADERS },
           );
         }
 
@@ -438,15 +473,26 @@ const server = Bun.serve({
         let cacheControl: string;
         let uploadToCloud: boolean;
         let extractMeta: boolean;
-        let crop: { x: number; y: number; width: number; height: number } | undefined;
+        let crop:
+          | { x: number; y: number; width: number; height: number }
+          | undefined;
 
         if (req.method === "POST") {
           const body = (await req.json()) as ScreenshotRequestBody;
           targetUrl = body.url || null;
-          width = Math.min(Math.max(parseInt(String(body.width || "1200")), 320), 3840);
-          height = Math.min(Math.max(parseInt(String(body.height || "630")), 240), 2160);
+          width = Math.min(
+            Math.max(parseInt(String(body.width || "1200")), 320),
+            3840,
+          );
+          height = Math.min(
+            Math.max(parseInt(String(body.height || "630")), 240),
+            2160,
+          );
           dark = body.dark === true || body.dark === "true";
-          quality = Math.min(Math.max(parseInt(String(body.quality || "80")), 1), 100);
+          quality = Math.min(
+            Math.max(parseInt(String(body.quality || "80")), 1),
+            100,
+          );
           format = body.format || "webp";
           outputFormat = body.outputFormat || "json";
           fullPage = body.fullPage === true || body.fullPage === "true";
@@ -459,14 +505,26 @@ const server = Bun.serve({
           crop = body.crop;
         } else {
           targetUrl = url.searchParams.get("url");
-          width = Math.min(Math.max(parseInt(url.searchParams.get("width") || "1200"), 320), 3840);
-          height = Math.min(Math.max(parseInt(url.searchParams.get("height") || "630"), 240), 2160);
+          width = Math.min(
+            Math.max(parseInt(url.searchParams.get("width") || "1200"), 320),
+            3840,
+          );
+          height = Math.min(
+            Math.max(parseInt(url.searchParams.get("height") || "630"), 240),
+            2160,
+          );
           dark = url.searchParams.get("dark") === "true";
-          quality = Math.min(Math.max(parseInt(url.searchParams.get("quality") || "80"), 1), 100);
+          quality = Math.min(
+            Math.max(parseInt(url.searchParams.get("quality") || "80"), 1),
+            100,
+          );
           format = url.searchParams.get("format") || "webp";
           outputFormat = url.searchParams.get("output") || "image";
           fullPage = url.searchParams.get("fullPage") === "true";
-          delay = Math.min(parseInt(url.searchParams.get("delay") || "0"), 10000);
+          delay = Math.min(
+            parseInt(url.searchParams.get("delay") || "0"),
+            10000,
+          );
           waitFor = url.searchParams.get("waitFor") || undefined;
           userAgent = url.searchParams.get("userAgent") || undefined;
           cacheControl = url.searchParams.get("cache") || "default";
@@ -481,28 +539,50 @@ const server = Bun.serve({
 
         if (!targetUrl) {
           return Response.json(
-            { error: "Missing URL parameter", message: "Please provide a 'url' parameter" },
-            { status: 400, headers: CORS_HEADERS }
+            {
+              error: "Missing URL parameter",
+              message: "Please provide a 'url' parameter",
+            },
+            { status: 400, headers: CORS_HEADERS },
           );
         }
 
         const urlCheck = isUrlSafe(targetUrl);
         if (!urlCheck.safe) {
           return Response.json(
-            { error: "Blocked URL", message: urlCheck.reason || "URL is not allowed" },
-            { status: 403, headers: CORS_HEADERS }
+            {
+              error: "Blocked URL",
+              message: urlCheck.reason || "URL is not allowed",
+            },
+            { status: 403, headers: CORS_HEADERS },
           );
         }
 
-        const paramsCheck = validateScreenshotParams({ width, height, delay, quality, format });
+        const paramsCheck = validateScreenshotParams({
+          width,
+          height,
+          delay,
+          quality,
+          format,
+        });
         if (!paramsCheck.valid) {
           return Response.json(
-            { error: "Invalid parameters", message: paramsCheck.reason || "Invalid parameters" },
-            { status: 400, headers: CORS_HEADERS }
+            {
+              error: "Invalid parameters",
+              message: paramsCheck.reason || "Invalid parameters",
+            },
+            { status: 400, headers: CORS_HEADERS },
           );
         }
 
-        const filename = getImageFilename(targetUrl, width, height, dark, format, fullPage);
+        const filename = getImageFilename(
+          targetUrl,
+          width,
+          height,
+          dark,
+          format,
+          fullPage,
+        );
         const filepath = join(CONFIG.IMAGES_DIR, filename);
 
         const shouldUseCache = cacheControl !== "refresh";
@@ -511,7 +591,7 @@ const server = Bun.serve({
         if (cacheControl === "only" && !cached) {
           return Response.json(
             { error: "Not cached", message: "Screenshot not in cache" },
-            { status: 404, headers: CORS_HEADERS }
+            { status: 404, headers: CORS_HEADERS },
           );
         }
 
@@ -527,8 +607,22 @@ const server = Bun.serve({
         } else {
           stats.cacheMisses++;
 
-          const result = await captureScreenshot(targetUrl, width, height, dark, fullPage, delay, waitFor, userAgent);
-          const processed = await processImage(result.buffer, format, quality, crop);
+          const result = await captureScreenshot(
+            targetUrl,
+            width,
+            height,
+            dark,
+            fullPage,
+            delay,
+            waitFor,
+            userAgent,
+          );
+          const processed = await processImage(
+            result.buffer,
+            format,
+            quality,
+            crop,
+          );
 
           imageBuffer = processed.buffer;
           fileSize = processed.size;
@@ -563,11 +657,16 @@ const server = Bun.serve({
               responseTime,
               metadata,
             },
-            { headers: CORS_HEADERS }
+            { headers: CORS_HEADERS },
           );
         }
 
-        const contentType = format === "webp" ? "image/webp" : format === "png" ? "image/png" : "image/jpeg";
+        const contentType =
+          format === "webp"
+            ? "image/webp"
+            : format === "png"
+              ? "image/png"
+              : "image/jpeg";
 
         return new Response(new Uint8Array(imageBuffer), {
           headers: {
@@ -581,15 +680,21 @@ const server = Bun.serve({
       } catch (error) {
         stats.errors++;
         return Response.json(
-          { error: "Screenshot failed", message: error instanceof Error ? error.message : "Unknown error" },
-          { status: 500, headers: CORS_HEADERS }
+          {
+            error: "Screenshot failed",
+            message: error instanceof Error ? error.message : "Unknown error",
+          },
+          { status: 500, headers: CORS_HEADERS },
         );
       }
     }
 
     if (url.pathname === "/api/batch") {
       if (req.method !== "POST") {
-        return Response.json({ error: "Method not allowed" }, { status: 405, headers: CORS_HEADERS });
+        return Response.json(
+          { error: "Method not allowed" },
+          { status: 405, headers: CORS_HEADERS },
+        );
       }
 
       try {
@@ -597,33 +702,61 @@ const server = Bun.serve({
         const urls = body.urls || [];
 
         if (!Array.isArray(urls) || urls.length === 0) {
-          return Response.json({ error: "Invalid request", message: "Provide an array of URLs" }, { status: 400, headers: CORS_HEADERS });
+          return Response.json(
+            { error: "Invalid request", message: "Provide an array of URLs" },
+            { status: 400, headers: CORS_HEADERS },
+          );
         }
 
         if (urls.length > 10) {
-          return Response.json({ error: "Too many URLs", message: "Maximum 10 URLs per batch" }, { status: 400, headers: CORS_HEADERS });
+          return Response.json(
+            { error: "Too many URLs", message: "Maximum 10 URLs per batch" },
+            { status: 400, headers: CORS_HEADERS },
+          );
         }
 
         for (const testUrl of urls) {
           const urlCheck = isUrlSafe(testUrl);
           if (!urlCheck.safe) {
             return Response.json(
-              { error: "Blocked URL in batch", message: `${testUrl}: ${urlCheck.reason}` },
-              { status: 403, headers: CORS_HEADERS }
+              {
+                error: "Blocked URL in batch",
+                message: `${testUrl}: ${urlCheck.reason}`,
+              },
+              { status: 403, headers: CORS_HEADERS },
             );
           }
         }
 
         const results = await Promise.allSettled(
           urls.map(async (targetUrl: string) => {
-            const filename = getImageFilename(targetUrl, 1200, 630, false, "webp", false);
+            const filename = getImageFilename(
+              targetUrl,
+              1200,
+              630,
+              false,
+              "webp",
+              false,
+            );
             const filepath = join(CONFIG.IMAGES_DIR, filename);
 
             if (existsSync(filepath)) {
-              return { url: targetUrl, filename, cached: true, localPath: `/images/${filename}` };
+              return {
+                url: targetUrl,
+                filename,
+                cached: true,
+                localPath: `/images/${filename}`,
+              };
             }
 
-            const result = await captureScreenshot(targetUrl, 1200, 630, false, false, 0);
+            const result = await captureScreenshot(
+              targetUrl,
+              1200,
+              630,
+              false,
+              false,
+              0,
+            );
             const processed = await processImage(result.buffer, "webp", 80);
 
             await Bun.write(filepath, processed.buffer);
@@ -636,7 +769,7 @@ const server = Bun.serve({
               localPath: `/images/${filename}`,
               metadata: result.metadata,
             };
-          })
+          }),
         );
 
         return Response.json(
@@ -647,16 +780,23 @@ const server = Bun.serve({
               if (r.status === "fulfilled") {
                 return { success: true, ...r.value };
               } else {
-                return { success: false, url: urls[i], error: r.reason?.message || "Failed" };
+                return {
+                  success: false,
+                  url: urls[i],
+                  error: r.reason?.message || "Failed",
+                };
               }
             }),
           },
-          { headers: CORS_HEADERS }
+          { headers: CORS_HEADERS },
         );
       } catch (error) {
         return Response.json(
-          { error: "Batch processing failed", message: error instanceof Error ? error.message : "Unknown error" },
-          { status: 500, headers: CORS_HEADERS }
+          {
+            error: "Batch processing failed",
+            message: error instanceof Error ? error.message : "Unknown error",
+          },
+          { status: 500, headers: CORS_HEADERS },
         );
       }
     }
@@ -668,21 +808,39 @@ const server = Bun.serve({
       if (existsSync(filepath)) {
         const file = Bun.file(filepath);
         const ext = filename.split(".").pop();
-        const contentType = ext === "webp" ? "image/webp" : ext === "png" ? "image/png" : "image/jpeg";
+        const contentType =
+          ext === "webp"
+            ? "image/webp"
+            : ext === "png"
+              ? "image/png"
+              : "image/jpeg";
 
         return new Response(file, {
-          headers: { "Content-Type": contentType, "Cache-Control": "public, max-age=31536000", ...CORS_HEADERS },
+          headers: {
+            "Content-Type": contentType,
+            "Cache-Control": "public, max-age=31536000",
+            ...CORS_HEADERS,
+          },
         });
       }
 
-      return Response.json({ error: "Image not found" }, { status: 404, headers: CORS_HEADERS });
+      return Response.json(
+        { error: "Image not found" },
+        { status: 404, headers: CORS_HEADERS },
+      );
     }
 
-    return Response.json({ error: "Not Found" }, { status: 404, headers: CORS_HEADERS });
+    return Response.json(
+      { error: "Not Found" },
+      { status: 404, headers: CORS_HEADERS },
+    );
   },
 
   error(error) {
-    return Response.json({ error: "Internal Server Error", message: error.message }, { status: 500 });
+    return Response.json(
+      { error: "Internal Server Error", message: error.message },
+      { status: 500 },
+    );
   },
 });
 
@@ -692,18 +850,18 @@ process.on("SIGINT", async () => {
 });
 
 console.log(`
-🚀 Screenshot API v2.0 - http://${CONFIG.HOST}:${CONFIG.PORT}
+  http://${CONFIG.HOST}:${CONFIG.PORT}
 
 Features:
-  ✅ Multiple formats (webp, png, jpeg)
-  ✅ Full page screenshots
-  ✅ Wait/Delay support
-  ✅ Metadata extraction
-  ✅ Batch processing (up to 10 URLs)
-  ✅ Cache control (default, refresh, only)
-  ✅ S3/R2 upload ${CONFIG.S3_ENABLED ? "✅ ENABLED" : "❌"}
-  ✅ Auto cleanup ${CONFIG.AUTO_CLEANUP_ENABLED ? "✅ ENABLED" : "❌"}
-  ✅ Usage stats
+  Multiple formats (webp, png, jpeg)
+  Full page screenshots
+  Wait/Delay support
+  Metadata extraction
+  Batch processing (up to 10 URLs)
+  Cache control (default, refresh, only)
+  S3/R2 upload ${CONFIG.S3_ENABLED ? "ENABLED" : "❌"}
+  Auto cleanup ${CONFIG.AUTO_CLEANUP_ENABLED ? "ENABLED" : "❌"}
+  Usage stats
 
 Storage: ${CONFIG.IMAGES_DIR}
 Limits: ${CONFIG.MAX_REQUESTS_PER_IP} req/hour per IP

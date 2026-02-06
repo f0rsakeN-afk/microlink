@@ -1,5 +1,5 @@
 {
-  "name": "screenshot-api",
+  "name": "macrolink",
   "version": "1.0.0",
   "description": "Self-hosted screenshot API with WebP compression",
   "type": "module",
