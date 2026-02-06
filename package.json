@@ -1,0 +1,27 @@
+{
+  "name": "screenshot-api",
+  "version": "1.0.0",
+  "description": "Self-hosted screenshot API with WebP compression",
+  "type": "module",
+  "scripts": {
+    "start": "bun server.ts",
+    "dev": "bun --hot server.ts"
+  },
+  "keywords": [
+    "screenshot",
+    "api",
+    "webp",
+    "puppeteer",
+    "self-hosted"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.984.0",
+    "puppeteer": "^24.37.2",
+    "sharp": "^0.34.5"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.3.3"
+  }
+}

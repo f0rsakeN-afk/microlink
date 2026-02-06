@@ -1,0 +1,12 @@
+node_modules
+.env
+*.log
+*.tsbuildinfo
+.DS_Store
+.idea
+.cache
+images/*.webp
+dist
+out
+coverage
+.claude
